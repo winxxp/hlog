@@ -180,7 +180,7 @@ func TestHeader(t *testing.T) {
 	pid = 1234
 	Info("test")
 	var line int
-	format := "I0102 15:04:05.067890    1234 glog_test.go:%d] test\n"
+	format := "I0102 15:04:05.067890 glog_test.go:TestHeader:%d] test\n"
 	n, err := fmt.Sscanf(contents(infoLog), format, &line)
 	if n != 1 || err != nil {
 		t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(infoLog))
@@ -395,6 +395,7 @@ func TestLogBacktraceAt(t *testing.T) {
 		Info("we want a stack trace here")
 	}
 	numAppearances := strings.Count(contents(infoLog), infoLine)
+	t.Log("numAppearances:", numAppearances)
 	if numAppearances < 2 {
 		// Need 2 appearances, one in the log header and one in the trace:
 		//   log_test.go:281: I0511 16:36:06.952398 02238 log_test.go:280] we want a stack trace here
@@ -409,7 +410,7 @@ func TestLogBacktraceAt(t *testing.T) {
 
 func BenchmarkHeader(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		buf, _, _ := logging.header(infoLog, 0)
+		buf, _, _, _ := logging.header(infoLog, 0)
 		logging.putBuffer(buf)
 	}
 }

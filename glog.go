@@ -532,22 +532,30 @@ where the fields are defined as follows:
 	line             The line number
 	msg              The user-supplied message
 */
-func (l *loggingT) header(s severity, depth int) (*buffer, string, int) {
-	_, file, line, ok := runtime.Caller(3 + depth)
+func (l *loggingT) header(s severity, depth int) (*buffer, string, string, int) {
+	fn := "???"
+	pc, file, line, ok := runtime.Caller(3 + depth)
 	if !ok {
 		file = "???"
 		line = 1
 	} else {
-		slash := strings.LastIndex(file, "/")
+		p := runtime.FuncForPC(pc)
+		fn = p.Name()
+		slash := strings.LastIndex(fn, ".")
+		if slash >= 0 {
+			fn = fn[slash+1:]
+		}
+		slash = strings.LastIndex(file, "/")
 		if slash >= 0 {
 			file = file[slash+1:]
 		}
 	}
-	return l.formatHeader(s, file, line), file, line
+
+	return l.formatHeader(s, file, fn, line), file, fn, line
 }
 
 // formatHeader formats a log header using the provided file name and line number.
-func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
+func (l *loggingT) formatHeader(s severity, file, fn string, line int) *buffer {
 	now := timeNow()
 	if line < 0 {
 		line = 0 // not a real line number, but acceptable to someDigits
@@ -573,22 +581,51 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 	buf.twoDigits(12, second)
 	buf.tmp[14] = '.'
 	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-	buf.tmp[21] = ' '
-	buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
-	buf.tmp[29] = ' '
-	buf.Write(buf.tmp[:30])
-	buf.WriteString(file)
-	buf.tmp[0] = ':'
-	n := buf.someDigits(1, line)
-	buf.tmp[n+1] = ']'
-	buf.tmp[n+2] = ' '
-	buf.Write(buf.tmp[:n+3])
+	buf.tmp[21] = ']'
+	buf.tmp[22] = ' '
+	// buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
+	// buf.tmp[29] = ' '
+	buf.Write(buf.tmp[:23])
+
+	// buf.WriteString(fmt.Sprintf("%+15s:", file))
+	// buf.WriteByte(':')
+
+	// buf.WriteString(fmt.Sprintf("%+15s:", fn))
+
+	// buf.tmp[0] = ':'
+	// buf.WriteString(fmt.Sprintf("%05d] ", line))
+
+	// n := buf.someDigits(1, line)
+	// buf.tmp[n+1] = ']'
+	// buf.tmp[n+2] = ' '
+	// buf.Write(buf.tmp[:n+3])
 	return buf
 }
 
 // Some custom tiny helper functions to print the log header efficiently.
 
 const digits = "0123456789"
+const (
+	PADING_COLUMNS = 64
+)
+
+var spacePad = []byte{
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
+
+func (buf *buffer) fillPading() {
+	n := PADING_COLUMNS - buf.Len()
+	if n <= 0 {
+		return
+	}
+	buf.Write(spacePad[:n])
+}
 
 // twoDigits formats a zero-prefixed two-digit integer at buf.tmp[i].
 func (buf *buffer) twoDigits(i, d int) {
@@ -628,8 +665,10 @@ func (buf *buffer) someDigits(i, d int) int {
 }
 
 func (l *loggingT) println(s severity, args ...interface{}) {
-	buf, file, line := l.header(s, 0)
+	buf, file, fn, line := l.header(s, 0)
 	fmt.Fprintln(buf, args...)
+	buf.fillPading()
+	fmt.Fprintf(buf, " %s:%s:%d", file, fn, line)
 	l.output(s, buf, file, line, false)
 }
 
@@ -638,8 +677,10 @@ func (l *loggingT) print(s severity, args ...interface{}) {
 }
 
 func (l *loggingT) printDepth(s severity, depth int, args ...interface{}) {
-	buf, file, line := l.header(s, depth)
+	buf, file, fn, line := l.header(s, depth)
 	fmt.Fprint(buf, args...)
+	buf.fillPading()
+	fmt.Fprintf(buf, " %s:%s:%d", file, fn, line)
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
@@ -647,8 +688,10 @@ func (l *loggingT) printDepth(s severity, depth int, args ...interface{}) {
 }
 
 func (l *loggingT) printf(s severity, format string, args ...interface{}) {
-	buf, file, line := l.header(s, 0)
+	buf, file, fn, line := l.header(s, 0)
 	fmt.Fprintf(buf, format, args...)
+	buf.fillPading()
+	fmt.Fprintf(buf, " %s:%s:%d", file, fn, line)
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
@@ -659,8 +702,10 @@ func (l *loggingT) printf(s severity, format string, args ...interface{}) {
 // alsoLogToStderr is true, the log message always appears on standard error; it
 // will also appear in the log file unless --logtostderr is set.
 func (l *loggingT) printWithFileLine(s severity, file string, line int, alsoToStderr bool, args ...interface{}) {
-	buf := l.formatHeader(s, file, line)
+	buf := l.formatHeader(s, file, "fn", line)
 	fmt.Fprint(buf, args...)
+	// buf.fillPading()
+	// fmt.Fprintf(buf, " %s:%s:%d", file, fn, line)
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
@@ -845,7 +890,7 @@ func (sb *syncBuffer) rotateFile(now time.Time) error {
 	fmt.Fprintf(&buf, "Log file created at: %s\n", now.Format("2006/01/02 15:04:05"))
 	fmt.Fprintf(&buf, "Running on machine: %s\n", host)
 	fmt.Fprintf(&buf, "Binary: Built with %s %s for %s/%s\n", runtime.Compiler, runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	fmt.Fprintf(&buf, "Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg\n")
+	fmt.Fprintf(&buf, "Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file.function:line] msg\n")
 	n, err := sb.file.Write(buf.Bytes())
 	sb.nbytes += uint64(n)
 	return err
