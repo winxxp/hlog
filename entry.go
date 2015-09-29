@@ -1,6 +1,9 @@
 package glog
 
-import "fmt"
+import (
+	"fmt"
+	"sync/atomic"
+)
 
 type IdIface interface {
 	ID() string
@@ -9,21 +12,43 @@ type IdIface interface {
 type Fields map[string]interface{}
 
 type Entry struct {
-	Logger *loggingT
-	Data   Fields
-	Id     IdIface
+	Logger   *loggingT
+	Data     Fields
+	Depth_   int
+	Padding_ byte
+	Id       IdIface
 }
 
 func NewEntry(logger *loggingT) *Entry {
 	return &Entry{
-		Logger: logger,
-		Data:   make(Fields, 5),
+		Logger:   logger,
+		Data:     make(Fields, 5),
+		Depth_:   0,
+		Padding_: ' ',
 	}
 }
 
-// Add a single field to the Entry.
 func (entry *Entry) WithField(key string, value interface{}) *Entry {
 	return entry.WithFields(Fields{key: value})
+}
+
+func (entry *Entry) WithId(id IdIface) *Entry {
+	entry.Id = id
+	return entry
+}
+
+func (entry *Entry) Depth(depth int) *Entry {
+	entry.Depth_ = depth
+	return entry
+}
+
+func (entry *Entry) Padding(padding byte) *Entry {
+	entry.Padding_ = padding
+	return entry
+}
+
+func (entry *Entry) WithError(err error) *Entry {
+	return entry.WithField("Err", err)
 }
 
 // Add a map of fields to the Entry.
@@ -35,28 +60,34 @@ func (entry *Entry) WithFields(fields Fields) *Entry {
 	for k, v := range fields {
 		data[k] = v
 	}
-	return &Entry{Logger: entry.Logger, Data: data, Id: entry.Id}
+	return &Entry{Logger: entry.Logger,
+		Data:     data,
+		Depth_:   entry.Depth_,
+		Padding_: ' ',
+		Id:       entry.Id,
+	}
 }
 
-func (entry *Entry) WithId(id IdIface) *Entry {
-	entry.Id = id
-	return entry
-}
+func (entry *Entry) logf(s severity, format string, args ...interface{}) {
+	buf, file, fn, line := entry.Logger.header(s, entry.Depth_)
+	if format != "" {
+		fmt.Fprintf(buf, format, args...)
+	} else {
+		fmt.Fprint(buf, args...)
+	}
 
-func (entry *Entry) log(s severity, args ...interface{}) {
-	buf, file, fn, line := entry.Logger.header(s, 0)
+	buf.fillPading(entry.Padding_)
 
 	if entry.Id != nil {
 		fmt.Fprint(buf, entry.Id.ID())
+		buf.Write(spacePad[:1])
 	}
-	fmt.Fprint(buf, args...)
-	buf.fillPading()
 
 	for k, v := range entry.Data {
-		buf.WriteString(fmt.Sprintf(" %s=%v", k, v))
+		buf.WriteString(fmt.Sprintf("%s=%v ", k, v))
 	}
 
-	fmt.Fprintf(buf, " %s:%s:%d", file, fn, line)
+	fmt.Fprintf(buf, "[%s:%s:%d]", file, fn, line)
 
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
@@ -65,23 +96,53 @@ func (entry *Entry) log(s severity, args ...interface{}) {
 }
 
 func (entry *Entry) Info(args ...interface{}) {
-	entry.log(infoLog, args...)
+	entry.logf(infoLog, "", args...)
 }
 
 func (entry *Entry) Warning(args ...interface{}) {
-	entry.log(warningLog, args...)
+	entry.logf(warningLog, "", args...)
 }
 
 func (entry *Entry) Error(args ...interface{}) {
-	entry.log(errorLog, args...)
+	entry.logf(errorLog, "", args...)
 }
 
 func (entry *Entry) Fatal(args ...interface{}) {
-	entry.log(fatalLog, args...)
+	entry.logf(fatalLog, "", args...)
+}
+
+func (entry *Entry) Exit(args ...interface{}) {
+	atomic.StoreUint32(&fatalNoStacks, 1)
+	entry.logf(fatalLog, "", args...)
+}
+
+func (entry *Entry) Infof(format string, args ...interface{}) {
+	entry.logf(infoLog, format, args...)
+}
+
+func (entry *Entry) Warningf(format string, args ...interface{}) {
+	entry.logf(warningLog, format, args...)
+}
+
+func (entry *Entry) Errorf(format string, args ...interface{}) {
+	entry.logf(errorLog, format, args...)
+}
+
+func (entry *Entry) Fatalf(format string, args ...interface{}) {
+	entry.logf(fatalLog, format, args...)
+}
+
+func (entry *Entry) Exitf(format string, args ...interface{}) {
+	atomic.StoreUint32(&fatalNoStacks, 1)
+	entry.logf(fatalLog, format, args...)
 }
 
 func WithId(id IdIface) *Entry {
 	return NewEntry(&logging).WithId(id)
+}
+
+func WithError(err error) *Entry {
+	return NewEntry(&logging).WithField("Err", err)
 }
 
 func WithField(key string, value interface{}) *Entry {
@@ -90,4 +151,12 @@ func WithField(key string, value interface{}) *Entry {
 
 func WithFields(fields Fields) *Entry {
 	return NewEntry(&logging).WithFields(fields)
+}
+
+func Depth(depth int) *Entry {
+	return NewEntry(&logging).Depth(depth)
+}
+
+func Padding(padding byte) *Entry {
+	return NewEntry(&logging).Padding(padding)
 }
