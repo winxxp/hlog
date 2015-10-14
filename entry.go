@@ -1,8 +1,11 @@
 package glog
 
 import (
+	"bytes"
 	"fmt"
+	"regexp"
 	"sync/atomic"
+	"unicode/utf8"
 )
 
 type IdIface interface {
@@ -116,6 +119,32 @@ func (entry *Entry) Exit(args ...interface{}) {
 	entry.logf(fatalLog, "", args...)
 }
 
+func (entry *Entry) padLog(s severity, ls, rs string, pad byte) {
+	entry.Depth_ = entry.Depth_ + 2
+	entry.logf(s, "", CreatPadInfo(ls, rs, pad, PADING_COLUMNS))
+}
+
+func (entry *Entry) PadInfo(ls, rs string, pad byte) {
+	entry.padLog(infoLog, ls, rs, pad)
+}
+
+func (entry *Entry) PadWarning(ls, rs string, pad byte) {
+	entry.padLog(warningLog, ls, rs, pad)
+}
+
+func (entry *Entry) PadError(ls, rs string, pad byte) {
+	entry.padLog(errorLog, ls, rs, pad)
+}
+
+func (entry *Entry) PadFatal(ls, rs string, pad byte) {
+	entry.padLog(fatalLog, ls, rs, pad)
+}
+
+func (entry *Entry) PadExit(ls, rs string, pad byte) {
+	atomic.StoreUint32(&fatalNoStacks, 1)
+	entry.padLog(fatalLog, ls, rs, pad)
+}
+
 func (entry *Entry) Infof(format string, args ...interface{}) {
 	entry.logf(infoLog, format, args...)
 }
@@ -159,4 +188,52 @@ func Depth(depth int) *Entry {
 
 func Padding(padding byte) *Entry {
 	return NewEntry(&logging).Padding(padding)
+}
+
+func PadInfo(ls, rs string, pad byte) {
+	NewEntry(&logging).PadInfo(ls, rs, pad)
+}
+
+func PadWarning(ls, rs string, pad byte) {
+	NewEntry(&logging).PadWarning(ls, rs, pad)
+}
+
+func PadError(ls, rs string, pad byte) {
+	NewEntry(&logging).PadError(ls, rs, pad)
+}
+
+func PadFatal(ls, rs string, pad byte) {
+	NewEntry(&logging).PadFatal(ls, rs, pad)
+}
+
+func PadExit(ls, rs string, pad byte) {
+	NewEntry(&logging).PadExit(ls, rs, pad)
+}
+
+var (
+	ansi = regexp.MustCompile("\033\\[(?:[0-9]{1,3}(?:;[0-9]{1,3})*)?[m|K]")
+)
+
+func DisplayWidth(str string) int {
+	return utf8.RuneCountInString(ansi.ReplaceAllLiteralString(str, ""))
+}
+
+func CreatPadInfo(ls, rs string, pad byte, width int) string {
+	gap := width - 27 - DisplayWidth(ls) - DisplayWidth(rs)
+
+	buf := bytes.NewBufferString(ls)
+	buf.WriteByte(' ')
+
+	if gap > 0 {
+		buf.Write(bytes.Repeat([]byte{pad}, gap))
+	} else {
+		buf.WriteByte(pad)
+	}
+
+	buf.WriteByte(' ')
+	buf.WriteString(rs)
+	buf.WriteByte(' ')
+	buf.WriteByte(pad)
+
+	return buf.String()
 }

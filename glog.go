@@ -395,6 +395,11 @@ type flushSyncWriter interface {
 	io.Writer
 }
 
+// reload configure
+var reloadCh = make(chan int, 1)
+
+var flushInterval = 30 * time.Second
+
 func init() {
 	flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
 	flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
@@ -402,12 +407,17 @@ func init() {
 	flag.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
 	flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
+	flag.DurationVar(&flushInterval, "flushInterval", 30*time.Second, "interval of flush buffer to log file")
 
 	// Default stderrThreshold is ERROR.
 	logging.stderrThreshold = errorLog
 
 	logging.setVState(0, nil, false)
 	go logging.flushDaemon()
+}
+
+func Reload() {
+	reloadCh <- 1
 }
 
 // Flush flushes all pending log I/O.
@@ -914,12 +924,27 @@ func (l *loggingT) createFiles(sev severity) error {
 	return nil
 }
 
-const flushInterval = 30 * time.Second
-
 // flushDaemon periodically flushes the log file buffers.
 func (l *loggingT) flushDaemon() {
-	for _ = range time.NewTicker(flushInterval).C {
-		l.lockAndFlushAll()
+	for {
+		func() {
+			if flushInterval <= time.Second {
+				flushInterval = time.Second
+			}
+
+			tickerCh := time.NewTicker(flushInterval).C
+			fmt.Println("[glog]flushInterval:", flushInterval)
+
+			for {
+				select {
+				case <-tickerCh:
+					l.lockAndFlushAll()
+				case <-reloadCh:
+					fmt.Println("reload")
+					return
+				}
+			}
+		}()
 	}
 }
 
