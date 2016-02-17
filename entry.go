@@ -19,7 +19,7 @@ type Entry struct {
 	Data     Fields
 	Depth_   int
 	Padding_ byte
-	Id       IdIface
+	Id       interface{}
 }
 
 func NewEntry(logger *loggingT) *Entry {
@@ -35,7 +35,7 @@ func (entry *Entry) WithField(key string, value interface{}) *Entry {
 	return entry.WithFields(Fields{key: value})
 }
 
-func (entry *Entry) WithId(id IdIface) *Entry {
+func (entry *Entry) WithId(id interface{}) *Entry {
 	entry.Id = id
 	return entry
 }
@@ -55,7 +55,7 @@ func (entry *Entry) WithError(err error) *Entry {
 }
 
 // Add a map of fields to the Entry.
-func (entry *Entry) WithFields(fields Fields) *Entry {
+func (entry *Entry) WithFields(fields map[string]interface{}) *Entry {
 	data := Fields{}
 	for k, v := range entry.Data {
 		data[k] = v
@@ -81,8 +81,10 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 
 	buf.fillPading(entry.Padding_)
 
-	if entry.Id != nil {
-		fmt.Fprint(buf, entry.Id.ID())
+	if id, ok := entry.Id.(IdIface); ok {
+		buf.WriteByte('[')
+		buf.WriteString(id.ID())
+		buf.WriteByte(']')
 		buf.Write(spacePad[:1])
 	}
 
@@ -120,7 +122,7 @@ func (entry *Entry) Exit(args ...interface{}) {
 }
 
 func (entry *Entry) padLog(s severity, ls, rs string, pad byte) {
-	entry.Depth_ = entry.Depth_ + 2
+	entry.Depth_ = entry.Depth_ + 1
 	entry.logf(s, "", CreatPadInfo(ls, rs, pad, PADING_COLUMNS))
 }
 
@@ -166,7 +168,7 @@ func (entry *Entry) Exitf(format string, args ...interface{}) {
 	entry.logf(fatalLog, format, args...)
 }
 
-func WithId(id IdIface) *Entry {
+func WithId(id interface{}) *Entry {
 	return NewEntry(&logging).WithId(id)
 }
 
@@ -191,7 +193,7 @@ func Padding(padding byte) *Entry {
 }
 
 func PadInfo(ls, rs string, pad byte) {
-	NewEntry(&logging).PadInfo(ls, rs, pad)
+	NewEntry(&logging).Depth(1).PadInfo(ls, rs, pad)
 }
 
 func PadWarning(ls, rs string, pad byte) {

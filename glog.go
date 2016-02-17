@@ -933,7 +933,6 @@ func (l *loggingT) flushDaemon() {
 			}
 
 			tickerCh := time.NewTicker(flushInterval).C
-			fmt.Println("[glog]flushInterval:", flushInterval)
 
 			for {
 				select {
