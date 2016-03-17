@@ -12,6 +12,12 @@ type IdIface interface {
 	ID() string
 }
 
+type ID string
+
+func (id ID) ID() string {
+	return string(id)
+}
+
 type Fields map[string]interface{}
 
 type Entry struct {
@@ -170,6 +176,10 @@ func (entry *Entry) Exitf(format string, args ...interface{}) {
 
 func WithId(id interface{}) *Entry {
 	return NewEntry(&logging).WithId(id)
+}
+
+func WithIdString(id string) *Entry {
+	return NewEntry(&logging).WithId(ID(id))
 }
 
 func WithError(err error) *Entry {
