@@ -95,7 +95,7 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 	}
 
 	for k, v := range entry.Data {
-		buf.WriteString(fmt.Sprintf("%s=%v ", k, v))
+		fmt.Fprintf(buf, "%s=%v ", k, v)
 	}
 
 	fmt.Fprintf(buf, "[%s:%s:%d]", file, fn, line)
@@ -103,7 +103,9 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
+
 	entry.Logger.output(s, buf, file, line, false)
+	entry.Logger.Hooks.Fire(int(s), entry)
 }
 
 func (entry *Entry) Info(args ...interface{}) {

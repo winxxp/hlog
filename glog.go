@@ -463,6 +463,11 @@ type loggingT struct {
 	// safely using atomic.LoadInt32.
 	vmodule   moduleSpec // The state of the -vmodule flag.
 	verbosity Level      // V logging level, the value of the -v flag/
+
+	// Hooks for the logger instance. These allow firing events based on logging
+	// levels and log entries. For example, to send errors to an error tracking
+	// service, log to StatsD or dump the core on fatal errors.
+	Hooks SeverityHooks
 }
 
 // buffer holds a byte Buffer for reuse. The zero value is ready for use.
@@ -472,7 +477,9 @@ type buffer struct {
 	next *buffer
 }
 
-var logging loggingT
+var logging loggingT = loggingT{
+	Hooks: make(SeverityHooks),
+}
 
 // setVState sets a consistent state for V logging.
 // l.mu is held.
@@ -1240,4 +1247,8 @@ func Exitln(args ...interface{}) {
 func Exitf(format string, args ...interface{}) {
 	atomic.StoreUint32(&fatalNoStacks, 1)
 	logging.printf(fatalLog, format, args...)
+}
+
+func AddHook(hook Hook) {
+	logging.Hooks.Add(hook)
 }
