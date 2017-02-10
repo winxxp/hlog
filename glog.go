@@ -67,6 +67,8 @@
 //		"glob" pattern and N is a V level. For instance,
 //			-vmodule=gopher*=3
 //		sets the V level to 3 in all Go files whose names begin "gopher".
+//	 -flushInterval=30s
+//      interval of flush buffer to log file
 //
 package glog
 
@@ -103,6 +105,14 @@ const (
 	errorLog
 	fatalLog
 	numSeverity = 4
+)
+
+const (
+	HookInfoLog     = infoLog
+	HookWarningLog  = warningLog
+	HookErrorLog    = errorLog
+	HookFatalLog    = fatalLog
+	HookNumSeverity = numSeverity
 )
 
 const severityChar = "IWEF"

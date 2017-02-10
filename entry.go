@@ -41,7 +41,7 @@ func (entry *Entry) WithField(key string, value interface{}) *Entry {
 	return entry.WithFields(Fields{key: value})
 }
 
-func (entry *Entry) WithId(id interface{}) *Entry {
+func (entry *Entry) WithID(id interface{}) *Entry {
 	entry.Id = id
 	return entry
 }
@@ -176,12 +176,12 @@ func (entry *Entry) Exitf(format string, args ...interface{}) {
 	entry.logf(fatalLog, format, args...)
 }
 
-func WithId(id interface{}) *Entry {
-	return NewEntry(&logging).WithId(id)
+func WithID(id interface{}) *Entry {
+	return NewEntry(&logging).WithID(id)
 }
 
-func WithIdString(id string) *Entry {
-	return NewEntry(&logging).WithId(ID(id))
+func WithIDString(id string) *Entry {
+	return NewEntry(&logging).WithID(ID(id))
 }
 
 func WithError(err error) *Entry {
