@@ -67,7 +67,7 @@
 //		"glob" pattern and N is a V level. For instance,
 //			-vmodule=gopher*=3
 //		sets the V level to 3 in all Go files whose names begin "gopher".
-//	 -flushInterval=30s
+//	 -flushInterval=5s
 //      interval of flush buffer to log file
 //
 package glog
@@ -408,7 +408,7 @@ type flushSyncWriter interface {
 // reload configure
 var reloadCh = make(chan int, 1)
 
-var flushInterval = 30 * time.Second
+var flushInterval = 5 * time.Second
 
 func init() {
 	flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
@@ -956,7 +956,7 @@ func (l *loggingT) flushDaemon() {
 				case <-tickerCh:
 					l.lockAndFlushAll()
 				case <-reloadCh:
-					fmt.Println("reload")
+					stdLog.Println("glog reload")
 					return
 				}
 			}
