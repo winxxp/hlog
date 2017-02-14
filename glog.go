@@ -411,19 +411,28 @@ var reloadCh = make(chan int, 1)
 var flushInterval = 5 * time.Second
 
 func init() {
-	flag.BoolVar(&logging.toStderr, "logtostderr", false, "log to standard error instead of files")
-	flag.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files")
-	flag.Var(&logging.verbosity, "v", "log level for V logs")
-	flag.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
-	flag.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
-	flag.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
-	flag.DurationVar(&flushInterval, "flushInterval", 30*time.Second, "interval of flush buffer to log file")
+	AddFlags(flag.CommandLine)
 
 	// Default stderrThreshold is ERROR.
 	logging.stderrThreshold = errorLog
 
 	logging.setVState(0, nil, false)
 	go logging.flushDaemon()
+}
+
+// AddFlags adds the flags used by this package to the given FlagSet. That's
+// useful if working with a custom FlagSet. The init function of this package
+// adds the flags to flag.CommandLine anyway. Thus, it's usually enough to call
+// flag.Parse() to make the logging flags take effect.
+func AddFlags(fs *flag.FlagSet) {
+	fs.StringVar(&logDir, "log.dir", "", "If non-empty, write log files to os temp directory")
+	fs.BoolVar(&logging.toStderr, "log.tostderr", false, "log to standard error instead of files")
+	fs.BoolVar(&logging.alsoToStderr, "log.alsotostderr", false, "log to standard error as well as files")
+	fs.Var(&logging.verbosity, "log.v", "log level for V logs")
+	fs.Var(&logging.stderrThreshold, "log.stderrthreshold", "logs at or above this threshold go to stderr")
+	fs.Var(&logging.vmodule, "log.vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
+	fs.Var(&logging.traceLocation, "log.backtrace_at", "when logging hits line file:N, emit a stack trace")
+	fs.DurationVar(&flushInterval, "log.flushInterval", 5*time.Second, "interval of flush buffer to log file")
 }
 
 func Reload() {
@@ -742,10 +751,7 @@ func (l *loggingT) output(s severity, buf *buffer, file string, line int, alsoTo
 		}
 	}
 	data := buf.Bytes()
-	if !flag.Parsed() {
-		os.Stderr.Write([]byte("ERROR: logging before flag.Parse: "))
-		os.Stderr.Write(data)
-	} else if l.toStderr {
+	if l.toStderr {
 		os.Stderr.Write(data)
 	} else {
 		if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
