@@ -408,7 +408,20 @@ type flushSyncWriter interface {
 // reload configure
 var reloadCh = make(chan int, 1)
 
-var flushInterval = 5 * time.Second
+var flushInterval durationValue = durationValue(time.Second * 5)
+
+type durationValue time.Duration
+
+func (d *durationValue) Set(s string) error {
+	v, err := time.ParseDuration(s)
+	*d = durationValue(v)
+	Reload()
+	return err
+}
+
+func (d *durationValue) Get() interface{} { return time.Duration(*d) }
+
+func (d *durationValue) String() string { return (*time.Duration)(d).String() }
 
 func init() {
 	AddFlags(flag.CommandLine)
@@ -432,7 +445,7 @@ func AddFlags(fs *flag.FlagSet) {
 	fs.Var(&logging.stderrThreshold, "log.stderrthreshold", "logs at or above this threshold go to stderr")
 	fs.Var(&logging.vmodule, "log.vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	fs.Var(&logging.traceLocation, "log.backtrace_at", "when logging hits line file:N, emit a stack trace")
-	fs.DurationVar(&flushInterval, "log.flushInterval", 5*time.Second, "interval of flush buffer to log file")
+	fs.Var(&flushInterval, "log.flushInterval", "interval of flush buffer to log file")
 }
 
 func Reload() {
@@ -951,18 +964,20 @@ func (l *loggingT) createFiles(sev severity) error {
 func (l *loggingT) flushDaemon() {
 	for {
 		func() {
-			if flushInterval <= time.Second {
-				flushInterval = time.Second
+			interval := time.Duration(flushInterval)
+			if interval <= time.Second {
+				interval = time.Second
 			}
 
-			tickerCh := time.NewTicker(flushInterval).C
+			flushCh := time.NewTicker(interval).C
 
 			for {
 				select {
-				case <-tickerCh:
+				case <-flushCh:
 					l.lockAndFlushAll()
+
 				case <-reloadCh:
-					stdLog.Println("glog reload")
+					stdLog.Printf("glog reload flush %s\n", time.Duration(flushInterval))
 					return
 				}
 			}

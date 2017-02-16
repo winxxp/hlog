@@ -96,7 +96,7 @@ func main() {
 	}()
 
 	flag.Parse()
-	glog.Reload()
+	//glog.Reload()
 	hook, err := NewLogstashHook()
 	if err != nil {
 		glog.Fatal("err", err)
@@ -145,8 +145,6 @@ func main() {
 		time.Sleep(time.Second)
 		glog.WithField("n", i).Info("sleep")
 	}
-
-	glog.Reload()
 
 	for i := 0; i < 10; i += 2 {
 		glog.PadInfo(strings.Repeat("s", i), "process: 0%", '-')
