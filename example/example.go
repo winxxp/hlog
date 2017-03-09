@@ -114,6 +114,7 @@ func main() {
 	glog.WithField("key", "value").Info(uid.ID(uint64(t)))
 
 	glog.WithID(nil).Info("nil id")
+	glog.WithID("string id").Info("string id test")
 
 	nid := NilId("nilid")
 	glog.WithID(nid).Info(nid)

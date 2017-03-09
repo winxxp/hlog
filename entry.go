@@ -87,9 +87,15 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 
 	buf.fillPading(entry.Padding_)
 
-	if id, ok := entry.Id.(IdIface); ok {
+	switch id := entry.Id.(type) {
+	case IdIface:
 		buf.WriteByte('[')
 		buf.WriteString(id.ID())
+		buf.WriteByte(']')
+		buf.Write(spacePad[:1])
+	case string:
+		buf.WriteByte('[')
+		buf.WriteString(id)
 		buf.WriteByte(']')
 		buf.Write(spacePad[:1])
 	}
