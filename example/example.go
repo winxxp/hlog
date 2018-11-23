@@ -49,11 +49,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/winxxp/glog"
+	"io"
 	"os"
 	"runtime"
 	"strings"
 	"time"
-	"util/uid"
 )
 
 func init() {
@@ -110,9 +110,6 @@ func main() {
 		"key": "value",
 	}).Warning("[1441090359-781398132]")
 
-	t := time.Now().UnixNano()
-	glog.WithField("key", "value").Info(uid.ID(uint64(t)))
-
 	glog.WithID(nil).Info("nil id")
 	glog.WithID("string id").Info("string id test")
 
@@ -146,6 +143,9 @@ func main() {
 		time.Sleep(time.Second)
 		glog.WithField("n", i).Info("sleep")
 	}
+
+	glog.WithResult(nil).Info("result test")
+	glog.WithResult(io.EOF).Info("result test")
 
 	for i := 0; i < 10; i += 2 {
 		glog.PadInfo(strings.Repeat("s", i), "process: 0%", '-')

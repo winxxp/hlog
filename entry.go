@@ -60,6 +60,14 @@ func (entry *Entry) WithError(err error) *Entry {
 	return entry.WithField("Err", err)
 }
 
+func (entry *Entry) WithResult(err error) *Entry {
+	result := "succeed"
+	if err != nil {
+		result = err.Error()
+	}
+	return entry.WithField("result", result)
+}
+
 // Add a map of fields to the Entry.
 func (entry *Entry) WithFields(fields map[string]interface{}) *Entry {
 	data := Fields{}
@@ -192,6 +200,10 @@ func WithIDString(id string) *Entry {
 
 func WithError(err error) *Entry {
 	return NewEntry(&logging).WithField("Err", err)
+}
+
+func WithResult(err error) *Entry {
+	return NewEntry(&logging).WithResult(err)
 }
 
 func WithField(key string, value interface{}) *Entry {
