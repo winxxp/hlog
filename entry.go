@@ -63,9 +63,9 @@ func (entry *Entry) WithError(err error) *Entry {
 func (entry *Entry) WithResult(err error) *Entry {
 	result := "succeed"
 	if err != nil {
-		result = err.Error()
+		result = "failed"
 	}
-	return entry.WithField("result", result)
+	return entry.WithField("result", result).WithError(err)
 }
 
 // Add a map of fields to the Entry.
@@ -94,6 +94,7 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 	}
 
 	buf.fillPading(entry.Padding_)
+	e
 
 	switch id := entry.Id.(type) {
 	case IdIface:
