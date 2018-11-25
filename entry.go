@@ -98,7 +98,6 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 	}
 
 	buf.fillPading(entry.Padding_)
-	e
 
 	switch id := entry.Id.(type) {
 	case IdIface:
