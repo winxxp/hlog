@@ -8,6 +8,10 @@ import (
 	"unicode/utf8"
 )
 
+var (
+	ErrTag = "Err"
+)
+
 type IdIface interface {
 	ID() string
 }
@@ -57,7 +61,7 @@ func (entry *Entry) Padding(padding byte) *Entry {
 }
 
 func (entry *Entry) WithError(err error) *Entry {
-	return entry.WithField("Err", err)
+	return entry.WithField(ErrTag, err)
 }
 
 func (entry *Entry) WithResult(err error) *Entry {
@@ -121,6 +125,22 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 
 	entry.Logger.output(s, buf, file, line, false)
 	entry.Logger.Hooks.Fire(int(s), entry)
+}
+
+func (entry *Entry) Log(args ...interface{}) {
+	l := infoLog
+	if _, found := entry.Data[ErrTag]; found {
+		l = errorLog
+	}
+	entry.logf(l, "", args...)
+}
+
+func (entry *Entry) Logf(format string, args ...interface{}) {
+	l := infoLog
+	if _, found := entry.Data[ErrTag]; found {
+		l = errorLog
+	}
+	entry.logf(l, format, args...)
 }
 
 func (entry *Entry) Info(args ...interface{}) {
