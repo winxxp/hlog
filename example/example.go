@@ -145,7 +145,8 @@ func main() {
 	}
 
 	glog.WithResult(nil).Info("result test")
-	glog.WithResult(io.EOF).Info("result test")
+	glog.WithResult(nil).Log("result test ok")
+	glog.WithResult(io.EOF).Log("result test error")
 
 	for i := 0; i < 10; i += 2 {
 		glog.PadInfo(strings.Repeat("s", i), "process: 0%", '-')

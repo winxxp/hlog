@@ -128,16 +128,20 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 
 func (entry *Entry) Log(args ...interface{}) {
 	l := infoLog
-	if _, found := entry.Data[ErrTag]; found {
+	if err, found := entry.Data[ErrTag]; found && err != nil {
 		l = errorLog
+	} else {
+		delete(entry.Data, ErrTag)
 	}
 	entry.logf(l, "", args...)
 }
 
 func (entry *Entry) Logf(format string, args ...interface{}) {
 	l := infoLog
-	if _, found := entry.Data[ErrTag]; found {
+	if err, found := entry.Data[ErrTag]; found && err != nil {
 		l = errorLog
+	} else {
+		delete(entry.Data, ErrTag)
 	}
 	entry.logf(l, format, args...)
 }
