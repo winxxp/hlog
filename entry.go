@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"sort"
+	"strings"
 	"sync/atomic"
 	"unicode/utf8"
 )
@@ -23,6 +25,13 @@ func (id ID) ID() string {
 }
 
 type Fields map[string]interface{}
+
+type sortField struct {
+	key string
+	val interface{}
+}
+
+type sortFields []sortField
 
 type Entry struct {
 	Logger   *loggingT
@@ -112,8 +121,15 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 		buf.Write(spacePad[:1])
 	}
 
+	sf := make(sortFields, 0, len(entry.Data))
 	for k, v := range entry.Data {
-		fmt.Fprintf(buf, "%s=%v ", k, v)
+		sf = append(sf, sortField{k, v})
+	}
+	sort.Slice(sf, func(i, j int) bool {
+		return strings.Compare(sf[i].key, sf[j].key) == -1
+	})
+	for _, v := range sf {
+		fmt.Fprintf(buf, "%s=%v ", v.key, v.val)
 	}
 
 	fmt.Fprintf(buf, "[%s:%s:%d]", file, fn, line)

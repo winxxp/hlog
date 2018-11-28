@@ -52,6 +52,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -149,7 +150,7 @@ func main() {
 	glog.WithResult(io.EOF).Log("result test error")
 
 	for i := 0; i < 10; i += 2 {
-		glog.PadInfo(strings.Repeat("s", i), "process: 0%", '-')
+		glog.PadInfo(strings.Repeat("s", i), "process: "+strconv.Itoa(i*10)+"%", ' ')
 		glog.PadWarning(strings.Repeat("s", i), "process: 0%", '-')
 
 		time.Sleep(time.Second)
