@@ -11,7 +11,10 @@ import (
 )
 
 var (
-	ErrTag = "Err"
+	ErrTag        = "Err"
+	ResultTag     = "result"
+	ResultSucceed = "succeed"
+	ResultFailed  = "failed"
 )
 
 type IdIface interface {
@@ -74,11 +77,13 @@ func (entry *Entry) WithError(err error) *Entry {
 }
 
 func (entry *Entry) WithResult(err error) *Entry {
-	result := "succeed"
+	result := ResultSucceed
 	if err != nil {
-		result = "failed"
+		result = ResultFailed
+		return entry.WithField(ResultTag, result).WithError(err)
+	} else {
+		return entry.WithField(ResultTag, result)
 	}
-	return entry.WithField("result", result).WithError(err)
 }
 
 // Add a map of fields to the Entry.
@@ -118,6 +123,21 @@ func (entry *Entry) logf(s severity, format string, args ...interface{}) {
 		buf.WriteByte('[')
 		buf.WriteString(id)
 		buf.WriteByte(']')
+		buf.Write(spacePad[:1])
+	}
+
+	if result, found := entry.Data[ResultTag]; found {
+		delete(entry.Data, ResultTag)
+		buf.WriteByte('{')
+		buf.WriteString(result.(string))
+		buf.WriteByte('}')
+		buf.Write(spacePad[:1])
+	}
+	if err, found := entry.Data[ErrTag]; found && err != nil {
+		delete(entry.Data, ErrTag)
+		buf.WriteByte('<')
+		buf.WriteString(err.(error).Error())
+		buf.WriteByte('>')
 		buf.Write(spacePad[:1])
 	}
 
