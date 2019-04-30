@@ -65,6 +65,7 @@ func init() {
 }
 
 func Log(args ...interface{}) {
+	glog.PaddingColumns = 90
 	glog.Info("--custome 1 head--" + fmt.Sprint(args...))
 	glog.InfoDepth(1, "--custome 1 head--"+fmt.Sprint(args...))
 	glog.InfoDepth(2, "--custome 2 head--"+fmt.Sprint(args...))

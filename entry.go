@@ -205,7 +205,7 @@ func (entry *Entry) Exit(args ...interface{}) {
 
 func (entry *Entry) padLog(s severity, ls, rs string, pad byte) {
 	entry.Depth_ = entry.Depth_ + 1
-	entry.logf(s, "", CreatPadInfo(ls, rs, pad, PADING_COLUMNS))
+	entry.logf(s, "", CreatPadInfo(ls, rs, pad, PaddingColumns))
 }
 
 func (entry *Entry) PadInfo(ls, rs string, pad byte) {

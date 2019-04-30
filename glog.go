@@ -640,8 +640,9 @@ func (l *loggingT) formatHeader(s severity, file, fn string, line int) *buffer {
 // Some custom tiny helper functions to print the log header efficiently.
 
 const digits = "0123456789"
-const (
-	PADING_COLUMNS = 64
+
+var (
+	PaddingColumns = 64
 )
 
 var spacePad = []byte{
@@ -655,7 +656,7 @@ var spacePad = []byte{
 	' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
 
 func (buf *buffer) fillPading(pad byte) {
-	n := PADING_COLUMNS - buf.Len()
+	n := PaddingColumns - buf.Len()
 	if n <= 0 {
 		buf.WriteByte(' ')
 		return
