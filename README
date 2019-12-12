@@ -1,15 +1,15 @@
-glog
+hlog
 ====
 
 Leveled execution logs for Go.
 
-Forked from github.com/golang/glog, and improve some logrus features, like
+Forked from github.com/golang/hlog, and improve some logrus features, like
 Entry, Hook. See example/example.go
 
-	glog.WithField("tags", "logs").WithField("c", "hello").Info("info")
-	glog.WithField("a", "b").WithField("c", "hello").Infof("info %v", 123)
-	glog.WithID("1233466676").Info("id is string")
-	glog.Depth(1).Info("depth")
+	hlog.WithField("tags", "logs").WithField("c", "hello").Info("info")
+	hlog.WithField("a", "b").WithField("c", "hello").Infof("info %v", 123)
+	hlog.WithID("1233466676").Info("id is string")
+	hlog.Depth(1).Info("depth")
 
     I0210 10:00:37.335020 info 123                                  a=b c=hello [example.go:main:63]
     W0210 10:00:37.335020 [1441090359-781398132]                    key=value [example.go:main:67]
@@ -25,9 +25,9 @@ without paying the expense of evaluating the arguments to the log.
 Through the -log.vmodule flag, the package also provides fine-grained
 control over logging at the file level.
 
-The comment from glog.go introduces the ideas:
+The comment from hlog.go introduces the ideas:
 
-	Package glog implements logging analogous to the Google-internal
+	Package hlog implements logging analogous to the Google-internal
 	C++ INFO/ERROR/V setup.  It provides functions Info, Warning,
 	Error, Fatal, plus formatting variants such as Infof. It
 	also provides V-style logging controlled by the -log.v and
@@ -35,18 +35,18 @@ The comment from glog.go introduces the ideas:
 
 	Basic examples:
 
-		glog.Info("Prepare to repel boarders")
+		hlog.Info("Prepare to repel boarders")
 
-		glog.Fatalf("Initialization failed: %s", err)
+		hlog.Fatalf("Initialization failed: %s", err)
 
 	See the documentation for the V function for an explanation
 	of these examples:
 
-		if glog.V(2) {
-			glog.Info("Starting transaction...")
+		if hlog.V(2) {
+			hlog.Info("Starting transaction...")
 		}
 
-		glog.V(2).Infoln("Processed", nItems, "elements")
+		hlog.V(2).Infoln("Processed", nItems, "elements")
 
 
 The repository contains an open source version of the log package
