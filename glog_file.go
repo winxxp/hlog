@@ -16,7 +16,7 @@
 
 // File I/O for logs.
 
-package glog
+package hlog
 
 import (
 	"errors"

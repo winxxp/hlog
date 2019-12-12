@@ -1,4 +1,4 @@
-package glog
+package hlog
 
 // copy from logrus hooks
 

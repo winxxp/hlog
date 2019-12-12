@@ -1,3 +1,3 @@
-module github.com/winxxp/glog
+module github.com/winxxp/hlog
 
-go 1.12
+go 1.13

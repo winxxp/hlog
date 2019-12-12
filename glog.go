@@ -70,7 +70,7 @@
 //	 -flushInterval=5s
 //      interval of flush buffer to log file
 //
-package glog
+package hlog
 
 import (
 	"bufio"
